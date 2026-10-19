@@ -174,7 +174,7 @@
   }
 </script>
 
-<aside class="ed">
+<aside class="ed" class:left={app.panelSide === 'left'}>
   <div class="tabs">
     {#each [['add', 'mdi:plus', 'Add'], ['card', 'mdi:card-bulleted-settings-outline', 'Card'], ['layout', 'mdi:devices', 'Layout'], ['views', 'mdi:view-dashboard-outline', 'Views'], ['theme', 'mdi:palette-outline', 'Theme']] as [k, ic, l]}
       <button class:on={app.panel === k} onclick={() => (app.panel = k)}><Icon icon={ic} size="1.2em" /><span>{l}</span></button>
@@ -385,6 +385,13 @@
 
 <style>
   .ed { position: fixed; top: 0; right: 0; bottom: 0; width: 360px; z-index: 800; background: rgba(16,19,28,.97); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; font-size: 14px; box-shadow: -10px 0 40px rgba(0,0,0,.4); }
+  @media (min-width: 761px) {
+    .ed.left { right: auto; left: 0; border-left: 0; border-right: 1px solid rgba(255,255,255,.08); box-shadow: 10px 0 40px rgba(0,0,0,.4); }
+  }
+  /* Phones: a bottom sheet (this used to live in App.svelte, where it never matched the panel). */
+  @media (max-width: 760px) {
+    .ed { top: auto; height: 55dvh; width: 100%; border-left: 0; border-top: 1px solid rgba(255,255,255,.1); border-radius: 18px 18px 0 0; }
+  }
   .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); }
   .tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0 8px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 11px; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
