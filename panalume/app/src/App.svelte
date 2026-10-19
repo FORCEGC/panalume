@@ -3,7 +3,7 @@
   import Editor from './components/Editor.svelte';
   import Popup from './components/Popup.svelte';
   import Icon from './components/Icon.svelte';
-  import { app, load, save, layout, DEVICES, MODE_SHORT, detectDevice, setView, removeSelected, duplicateSelected, selectedPlacement, changed, undo, undoLast, selectionSet, ensureEditable, zoneList, groupSelected } from './lib/config.svelte.js';
+  import { app, load, save, layout, setPanelSide, DEVICES, MODE_SHORT, detectDevice, setView, removeSelected, duplicateSelected, selectedPlacement, changed, undo, undoLast, selectionSet, ensureEditable, zoneList, groupSelected } from './lib/config.svelte.js';
   import { conn, toasts, watchEntities, states, subscribe } from './lib/ha.svelte.js';
   import { HUB_CHARGING, MYENERGI_OWN } from './lib/octopus.js';
   import { GRID } from './lib/config.svelte.js';
@@ -16,6 +16,7 @@
   let vw = $state(innerWidth);
   const autoDevice = detectDevice();
   const panelOpen = $derived(app.editing && !!app.panel && vw > 760);
+  const panelLeft = $derived(panelOpen && app.panelSide === 'left');
   const available = $derived(vw - (panelOpen ? 360 : 0));
 
   load();
@@ -137,13 +138,13 @@
 </svelte:head>
 
 {#if app.config}
-  <div class="app" class:noblur={!Number(th.cardBlur)}>
-    <Stage {available} {autoDevice} />
+  <div class="app" class:noblur={!Number(th.cardBlur)} class:editing={app.editing}>
+    <Stage {available} {autoDevice} offset={panelLeft ? 360 : 0} />
   </div>
 
   {#if app.editing}
     {#if app.panel}<Editor />{/if}
-    <div class="bar" style:right={panelOpen ? '380px' : '20px'}>
+    <div class="bar" style:left={panelLeft ? '360px' : '0'} style:right={panelOpen && !panelLeft ? '360px' : '0'}>
       <button class="done" onclick={toggleEdit}><Icon icon="mdi:check" size="1.2em" /> Done</button>
       <button title="Undo (Ctrl+Z)" disabled={!undo.count && !app.dirty} onclick={undoLast}><Icon icon="mdi:undo" size="1.2em" /></button>
       <select value={app.view} onchange={(e) => setView(e.currentTarget.value)} title="View">
@@ -152,7 +153,8 @@
       <select value={app.device} onchange={(e) => { app.device = e.currentTarget.value; app.selected = null; app.multi = []; }} title="Preview / edit device">
         {#each Object.entries(DEVICES) as [k, d]}<option value={k}>{d.label}{k !== 'tablet' ? ` (${MODE_SHORT[app.config.layouts[k].mode] || app.config.layouts[k].mode})` : ''}</option>{/each}
       </select>
-      <button title="Toggle panel" onclick={() => (app.panel = app.panel ? null : 'add')}><Icon icon="mdi:dock-right" size="1.2em" /></button>
+      <button title="Show / hide the panel" onclick={() => (app.panel = app.panel ? null : 'add')}><Icon icon={app.panelSide === 'left' ? 'mdi:dock-left' : 'mdi:dock-right'} size="1.2em" /></button>
+      {#if vw > 760}<button title={app.panelSide === 'left' ? 'Move the panel to the right' : 'Move the panel to the left'} onclick={() => setPanelSide(app.panelSide === 'left' ? 'right' : 'left')}><Icon icon="mdi:swap-horizontal" size="1.2em" /></button>{/if}
       <span class="st">{app.saving ? 'Saving…' : app.dirty ? 'Unsaved' : 'Saved'}</span>
     </div>
   {/if}
@@ -177,8 +179,9 @@
 
 <style>
   .app { min-height: 100dvh; }
+  .app.editing { padding-bottom: 64px; } /* room to scroll the last cards clear of the toolbar */
   .noblur :global(.card) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-  .bar { position: fixed; bottom: 20px; z-index: 850; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(20,24,36,.95); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5); font-size: 13px; transition: right .2s; }
+  .bar { position: fixed; bottom: 0; z-index: 850; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; background: rgba(20,24,36,.97); border-top: 1px solid rgba(255,255,255,.1); box-shadow: 0 -6px 24px rgba(0,0,0,.35); font-size: 13px; transition: left .2s, right .2s; } /* docked along the bottom of the canvas, beside the panel, instead of floating over the cards */
   .bar button, .bar select { background: rgba(255,255,255,.07); border: 0; color: inherit; height: 36px; padding: 0 10px; border-radius: 10px; font: inherit; display: inline-flex; align-items: center; gap: 6px; }
   .bar button:disabled { opacity: .35; }
   .bar .done { background: var(--accent); color: #000; font-weight: 600; }
@@ -195,7 +198,7 @@
   .toasts { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 960; display: flex; flex-direction: column; gap: 6px; }
   .toast { background: #2a2f40; padding: 10px 16px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.4); font-size: 14px; }
   @media (max-width: 760px) {
-    .app :global(.ed) { top: auto; height: 55dvh; width: 100%; border-left: 0; border-top: 1px solid rgba(255,255,255,.1); border-radius: 18px 18px 0 0; }
-    .bar { bottom: calc(55dvh + 10px); right: 10px !important; left: 10px; overflow-x: auto; }
+    .app.editing { padding-bottom: calc(55dvh + 64px); }
+    .bar { bottom: 55dvh; justify-content: flex-start; overflow-x: auto; } /* sits on top of the bottom sheet */
   }
 </style>
