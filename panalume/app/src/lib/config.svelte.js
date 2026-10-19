@@ -96,7 +96,14 @@ export const app = $state({
   dirty: false,
   saving: false,
   panel: null, // 'card' | 'theme' | 'views' | 'add'
+  panelSide: (() => { try { return localStorage.getItem('hd-panel-side') === 'left' ? 'left' : 'right'; } catch { return 'right'; } })(), // which edge the editor panel docks to
 });
+
+/** Dock the editor panel to the left or right edge (remembered on this device). */
+export function setPanelSide(side) {
+  app.panelSide = side === 'left' ? 'left' : 'right';
+  try { localStorage.setItem('hd-panel-side', app.panelSide); } catch {}
+}
 
 /** The layout a device actually shows (main, a reflow of main, or its own). */
 export function layout(dev = app.device) {
