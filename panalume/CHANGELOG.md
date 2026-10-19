@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.31.2
+
+- **The editing toolbar stays at the bottom edge.** It's now always a full-width strip along the bottom of the screen, on every screen size, with the panel shown or hidden. On narrow screens it used to sit halfway up the screen.
+- **Dock the editor panel left, right or along the bottom.** Three buttons on the toolbar pick the side; tap the highlighted one again to hide the panel. Works on every screen size and is remembered on each device. The dashboard shrinks to fit beside a side panel, so nothing is hidden behind it.
+
+## 0.31.1
+
+- **The editing toolbar no longer floats over your cards.** Done / undo / view / device now sit in a strip docked along the bottom of the canvas (beside the panel), and the page leaves room below the last cards so you can scroll everything clear of it.
+- **Editor panel on the left.** A new button in the toolbar moves the editor panel to the left or right edge (remembered on that device), so you can work on the other side of the screen. The dashboard shifts to stay in view and dragging stays accurate.
+- **Phones and narrow screens:** the editor is a bottom sheet with the toolbar just above it, as intended. The rule that shaped it never matched the panel, so it showed as a 360 px column with the toolbar floating in the middle of the screen.
+
+## 0.31.0
+
+- **New Air fryer card.** Pick the smart plug's power sensor and the card shows when the air fryer is cooking, paused or finished, a cook timer, when it started and when it finished, and the power it's drawing. No air-fryer integration needed.
+- **Taking the basket out doesn't stop the clock.** Air fryers cut their power while the basket is out, so a power cut of up to 3 minutes (change it with *Keep timing through no power for up to*) is counted as part of the same cook: the timer keeps running, the card shows *Paused*, and the finished cook time is the full time from start to finish, with the paused time noted alongside. A dip of under 30 seconds (the thermostat switching the heater off) is ignored altogether.
+- The cook is worked out from Home Assistant's history, so it survives reloading the page and every screen shows the same time. **Cooking above (W)** (50 by default) is the power that counts as cooking: set it above what the fan alone draws and below the heater.
+
 ## 0.30.1
 
 - Weather card: today's high and low now sit beside the temperature instead of under it, so they no longer push the forecast off the bottom of a small card.
