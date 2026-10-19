@@ -96,12 +96,13 @@ export const app = $state({
   dirty: false,
   saving: false,
   panel: null, // 'card' | 'theme' | 'views' | 'add'
-  panelSide: (() => { try { return localStorage.getItem('hd-panel-side') === 'left' ? 'left' : 'right'; } catch { return 'right'; } })(), // which edge the editor panel docks to
+  // Which edge the editor panel docks to: 'left' | 'right' | 'bottom', or '' for automatic (right, or bottom on narrow screens).
+  panelSide: (() => { try { const s = localStorage.getItem('hd-panel-side'); return ['left', 'right', 'bottom'].includes(s) ? s : ''; } catch { return ''; } })(),
 });
 
-/** Dock the editor panel to the left or right edge (remembered on this device). */
+/** Dock the editor panel to the left, right or bottom edge (remembered on this device). */
 export function setPanelSide(side) {
-  app.panelSide = side === 'left' ? 'left' : 'right';
+  app.panelSide = ['left', 'right', 'bottom'].includes(side) ? side : '';
   try { localStorage.setItem('hd-panel-side', app.panelSide); } catch {}
 }
 
