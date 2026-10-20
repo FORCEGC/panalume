@@ -10,7 +10,7 @@
   import CardFrame from './CardFrame.svelte';
   import { app, layout, GRID, changed, zoneList, ensureEditable, selectionSet, fitOverflow, usualGap } from '../lib/config.svelte.js';
 
-  let { available, autoDevice } = $props();
+  let { available, autoDevice, offset = 0 } = $props(); // offset: space taken on the left (the editor panel when docked left)
   let vh = $state(innerHeight);
   let scrollY = $state(0);
   let sbEl = $state();
@@ -46,7 +46,7 @@
   // instead of centring it with gaps either side.
   const fill = $derived(!split && display === 'screen' && !app.editing && scale < fit);
   const stageW = $derived(split ? available : fill ? available / scale : L.width);
-  const left = $derived(split || fill ? 0 : Math.max(0, (available - L.width * scale) / 2));
+  const left = $derived(offset + (split || fill ? 0 : Math.max(0, (available - L.width * scale) / 2)));
   const mainW = $derived(split ? (available - sb * sideZ) / mainZ : stageW - sb);
   // ...and widen the main area's cards to use that space, rather than leaving a
   // gap on the right (text keeps its size; cards just get wider).

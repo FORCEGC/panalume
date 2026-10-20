@@ -3,7 +3,7 @@
   import Editor from './components/Editor.svelte';
   import Popup from './components/Popup.svelte';
   import Icon from './components/Icon.svelte';
-  import { app, load, save, layout, DEVICES, MODE_SHORT, detectDevice, setView, removeSelected, duplicateSelected, selectedPlacement, changed, undo, undoLast, selectionSet, ensureEditable, zoneList, groupSelected } from './lib/config.svelte.js';
+  import { app, load, save, layout, setPanelSide, DEVICES, MODE_SHORT, detectDevice, setView, removeSelected, duplicateSelected, selectedPlacement, changed, undo, undoLast, selectionSet, ensureEditable, zoneList, groupSelected } from './lib/config.svelte.js';
   import { conn, toasts, watchEntities, states, subscribe } from './lib/ha.svelte.js';
   import { HUB_CHARGING, MYENERGI_OWN } from './lib/octopus.js';
   import { GRID } from './lib/config.svelte.js';
@@ -15,8 +15,17 @@
 
   let vw = $state(innerWidth);
   const autoDevice = detectDevice();
-  const panelOpen = $derived(app.editing && !!app.panel && vw > 760);
-  const available = $derived(vw - (panelOpen ? 360 : 0));
+  // The editor panel docks left, right or along the bottom; the dashboard gets the rest of the width.
+  const side = $derived(app.panelSide || (vw > 760 ? 'right' : 'bottom'));
+  const panelOpen = $derived(app.editing && !!app.panel);
+  const panelW = $derived(vw > 760 ? 360 : Math.min(360, Math.round(vw * 0.6)));
+  const sideW = $derived(panelOpen && side !== 'bottom' ? panelW : 0);
+  const available = $derived(vw - sideW);
+  // Toolbar dock buttons: pick a side (opening the panel), or tap the current side again to hide it.
+  function dock(s) {
+    if (app.panel && side === s) app.panel = null;
+    else { setPanelSide(s); app.panel ??= 'add'; }
+  }
 
   load();
 
@@ -137,14 +146,14 @@
 </svelte:head>
 
 {#if app.config}
-  <div class="app" class:noblur={!Number(th.cardBlur)}>
-    <Stage {available} {autoDevice} />
+  <div class="app" class:noblur={!Number(th.cardBlur)} class:editing={app.editing} class:sheet={panelOpen && side === 'bottom'}>
+    <Stage {available} {autoDevice} offset={panelOpen && side === 'left' ? panelW : 0} />
   </div>
 
   {#if app.editing}
-    {#if app.panel}<Editor />{/if}
-    <div class="bar" style:right={panelOpen ? '380px' : '20px'}>
-      <button class="done" onclick={toggleEdit}><Icon icon="mdi:check" size="1.2em" /> Done</button>
+    {#if app.panel}<Editor {side} width={panelW} />{/if}
+    <div class="bar">
+      <button class="done" onclick={toggleEdit} aria-label="Done"><Icon icon="mdi:check" size="1.2em" /><span class="lbl">Done</span></button>
       <button title="Undo (Ctrl+Z)" disabled={!undo.count && !app.dirty} onclick={undoLast}><Icon icon="mdi:undo" size="1.2em" /></button>
       <select value={app.view} onchange={(e) => setView(e.currentTarget.value)} title="View">
         {#each app.config.views as v}<option value={v.id}>{v.name}</option>{/each}
@@ -152,7 +161,11 @@
       <select value={app.device} onchange={(e) => { app.device = e.currentTarget.value; app.selected = null; app.multi = []; }} title="Preview / edit device">
         {#each Object.entries(DEVICES) as [k, d]}<option value={k}>{d.label}{k !== 'tablet' ? ` (${MODE_SHORT[app.config.layouts[k].mode] || app.config.layouts[k].mode})` : ''}</option>{/each}
       </select>
-      <button title="Toggle panel" onclick={() => (app.panel = app.panel ? null : 'add')}><Icon icon="mdi:dock-right" size="1.2em" /></button>
+      <span class="docks">
+        {#each [['left', 'mdi:dock-left'], ['bottom', 'mdi:dock-bottom'], ['right', 'mdi:dock-right']] as [s, ic]}
+          <button class:on={!!app.panel && side === s} title={app.panel && side === s ? 'Hide the panel' : `Panel on the ${s}`} aria-label={app.panel && side === s ? 'Hide the panel' : `Panel on the ${s}`} onclick={() => dock(s)}><Icon icon={ic} size="1.2em" /></button>
+        {/each}
+      </span>
       <span class="st">{app.saving ? 'Saving…' : app.dirty ? 'Unsaved' : 'Saved'}</span>
     </div>
   {/if}
@@ -177,8 +190,15 @@
 
 <style>
   .app { min-height: 100dvh; }
+  .app.editing { padding-bottom: calc(var(--bar-h) + 12px); } /* room to scroll the last cards clear of the toolbar */
+  .app.editing.sheet { padding-bottom: calc(var(--bar-h) + 45dvh + 12px); } /* …and of the panel when it's docked along the bottom */
   .noblur :global(.card) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-  .bar { position: fixed; bottom: 20px; z-index: 850; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(20,24,36,.95); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5); font-size: 13px; transition: right .2s; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; height: var(--bar-h); z-index: 850; display: flex; align-items: center; justify-content: center; justify-content: safe center; gap: 6px; padding: 0 10px; overflow-x: auto; background: rgba(20,24,36,.98); border-top: 1px solid rgba(255,255,255,.1); box-shadow: 0 -6px 24px rgba(0,0,0,.35); font-size: 13px; } /* always docked along the bottom edge, full width */
+  .bar > * { flex: none; }
+  .bar select { width: auto; max-width: 11em; } /* not full width like other dropdowns */
+  .docks { display: inline-flex; gap: 2px; padding: 2px; border-radius: 12px; background: rgba(255,255,255,.04); }
+  .bar .docks button { padding: 0 8px; background: none; }
+  .bar .docks button.on { background: rgba(122,162,255,.22); color: var(--accent); }
   .bar button, .bar select { background: rgba(255,255,255,.07); border: 0; color: inherit; height: 36px; padding: 0 10px; border-radius: 10px; font: inherit; display: inline-flex; align-items: center; gap: 6px; }
   .bar button:disabled { opacity: .35; }
   .bar .done { background: var(--accent); color: #000; font-weight: 600; }
@@ -194,8 +214,9 @@
   .offline { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 950; background: rgba(255,120,80,.9); color: #000; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
   .toasts { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 960; display: flex; flex-direction: column; gap: 6px; }
   .toast { background: #2a2f40; padding: 10px 16px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.4); font-size: 14px; }
-  @media (max-width: 760px) {
-    .app :global(.ed) { top: auto; height: 55dvh; width: 100%; border-left: 0; border-top: 1px solid rgba(255,255,255,.1); border-radius: 18px 18px 0 0; }
-    .bar { bottom: calc(55dvh + 10px); right: 10px !important; left: 10px; overflow-x: auto; }
+  @media (max-width: 480px) {
+    .bar { gap: 4px; padding: 0 6px; }
+    .bar select { max-width: 6.5em; padding: 0 6px; }
+    .bar .lbl, .st { display: none; } /* folded phones: Done becomes just the tick; no Saved label */
   }
 </style>

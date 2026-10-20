@@ -11,6 +11,7 @@
   import { fromFusion } from '../lib/fusion.js';
   import { toast } from '../lib/ha.svelte.js';
   import { devices, switchDevice } from '../lib/device.js';
+  let { side = 'right', width = 360 } = $props(); // which edge it's docked to (App.svelte decides)
   let importing = $state(false);
   async function importFusion() {
     if (!confirm('Replace this dashboard with one built from ha-fusion?')) return;
@@ -174,7 +175,7 @@
   }
 </script>
 
-<aside class="ed">
+<aside class="ed" class:left={side === 'left'} class:right={side === 'right'} class:bottom={side === 'bottom'} style:--pw="{width}px">
   <div class="tabs">
     {#each [['add', 'mdi:plus', 'Add'], ['card', 'mdi:card-bulleted-settings-outline', 'Card'], ['layout', 'mdi:devices', 'Layout'], ['views', 'mdi:view-dashboard-outline', 'Views'], ['theme', 'mdi:palette-outline', 'Theme']] as [k, ic, l]}
       <button class:on={app.panel === k} onclick={() => (app.panel = k)}><Icon icon={ic} size="1.2em" /><span>{l}</span></button>
@@ -384,7 +385,11 @@
 </aside>
 
 <style>
-  .ed { position: fixed; top: 0; right: 0; bottom: 0; width: 360px; z-index: 800; background: rgba(16,19,28,.97); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; font-size: 14px; box-shadow: -10px 0 40px rgba(0,0,0,.4); }
+  .ed { position: fixed; z-index: 800; background: rgba(16,19,28,.97); display: flex; flex-direction: column; font-size: 14px; }
+  /* Docked beside or below the dashboard, always above the toolbar along the bottom edge. */
+  .ed.right { top: 0; right: 0; bottom: var(--bar-h); width: var(--pw); border-left: 1px solid rgba(255,255,255,.08); box-shadow: -10px 0 40px rgba(0,0,0,.4); }
+  .ed.left { top: 0; left: 0; bottom: var(--bar-h); width: var(--pw); border-right: 1px solid rgba(255,255,255,.08); box-shadow: 10px 0 40px rgba(0,0,0,.4); }
+  .ed.bottom { left: 0; right: 0; bottom: var(--bar-h); height: 45dvh; border-top: 1px solid rgba(255,255,255,.1); border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.4); }
   .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); }
   .tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0 8px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 11px; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
