@@ -2,6 +2,7 @@
 
 ## 0.30.2
 
+- **Air fryer card.** Pick a smart plug's power sensor and the card shows when the air fryer is cooking, paused or finished, a cook timer, when it started and finished, and the power it's drawing; no air-fryer integration needed. Taking the basket out to shake the food doesn't stop the clock: a power cut of up to 3 minutes (*Keep timing through no power for up to*) counts as part of the same cook, shown as *Paused*, and the finished time is the whole cook with the paused time noted. Dips under 30 seconds (the thermostat) are ignored. The cook is worked out from Home Assistant's history, so it survives a reload and every screen shows the same time. **Cooking above (W)** (50 by default) sets the power that counts as cooking.
 - **Robot vacuum card.** A round button (with a battery ring, when the vacuum reports one) starts, pauses or resumes cleaning, with the status under it, a **Dock** button, a **Locate** (beep) button and a suction-power picker. It only shows what the vacuum says it supports, and picks up battery, area-cleaned, time and error sensors automatically when the integration has them (Roborock, Ecovacs, Dreame, Valetudo, SwitchBot…). Small cards become a single row.
 
 ## 0.30.1

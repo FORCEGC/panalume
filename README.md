@@ -72,6 +72,8 @@ Built for the [Octopus Energy](https://github.com/BottlecapDave/HomeAssistant-Oc
 
 Detects Samsung SmartThings washers, Home Connect (Bosch / Neff / Siemens) dishwashers, hOn (Haier / Candy / Hoover) dryers and Gecko (in.touch2) hot tubs; any other appliance can be set up by picking its entities.
 
+**Air fryer**: works on any smart plug with a power sensor. It shows when the air fryer is cooking, paused or finished, and times the whole cook; taking the basket out to shake the food doesn't stop the clock (you choose how long a power cut may last, 3 minutes by default).
+
 <table><tr>
 <td width="62%"><img src="docs/screenshots/printer.webp" alt="3D printer card"><br><sub><b>3D printer</b>: progress ring around the model, time left and finish time, layers, nozzle / bed / chamber temperatures, filament colour, Pause / Resume / Stop, light and speed (Bambu Lab printers detected automatically; OctoPrint too).</sub></td>
 <td width="38%"><img src="docs/screenshots/lock.webp" alt="Door lock card"><br><sub><b>Door lock</b>: a padlock whose shackle lifts when unlocked; tap to lock, tap twice to unlock; door sensor, battery and Open door.</sub></td>
@@ -95,7 +97,7 @@ Phones get an automatic single-column version of your tablet layout: navigation 
 
 ### All the cards
 
-Button / tile · Light · Thermostat (draggable dial) · Climate group (several thermostats / AC units at once) · Door lock · 3D printer · Hot tub · Washing machine · Tumble dryer · Dishwasher · Robot vacuum · Media player (artwork, volume, source, speaker grouping) · Cover / blind · Slider · Option picker · Entities list · Glance · Sensor with graph · Gauge · History graph · Weather · Clock · Sun & moon (sunrise / sunset, moon phase, moonrise / moonset) · Text / Markdown · Template lines · People · Camera (tap for full-screen live view; plays the video stream for cameras whose pictures fail, e.g. Tapo) · Web page · Image · Navigation · Divider · Alarm panel · and the energy cards above.
+Button / tile · Light · Thermostat (draggable dial) · Climate group (several thermostats / AC units at once) · Door lock · 3D printer · Hot tub · Washing machine · Tumble dryer · Dishwasher · Air fryer · Robot vacuum · Media player (artwork, volume, source, speaker grouping) · Cover / blind · Slider · Option picker · Entities list · Glance · Sensor with graph · Gauge · History graph · Weather · Clock · Sun & moon (sunrise / sunset, moon phase, moonrise / moonset) · Text / Markdown · Template lines · People · Camera (tap for full-screen live view; plays the video stream for cameras whose pictures fail, e.g. Tapo) · Web page · Image · Navigation · Divider · Alarm panel · and the energy cards above.
 
 ### Coming from ha-fusion?
 
