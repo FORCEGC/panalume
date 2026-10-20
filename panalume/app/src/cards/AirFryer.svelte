@@ -99,10 +99,12 @@
   const when = (at) => (day(at, now) === 'Today' ? '' : day(at, now) + ' ') + hm(at);
 
   const R = 46, C = 2 * Math.PI * R;
-  const size = $derived(Math.max(80, Math.min(h - 40, w * 0.4, 170)));
+  const size = $derived(Math.max(56, Math.min(h - 40, w * 0.4, 170)));
+  // Short cards: one row of chips, and the time without the "since" line.
+  const short = $derived(h < 150);
 </script>
 
-<div class="af" class:cooking class:paused class:done style="--k:#ff7a45">
+<div class="af" class:cooking class:paused class:done class:short style="--k:#ff7a45">
   {#if show('picture')}
     <div class="pic" style="width:{size}px;height:{size}px">
       <svg viewBox="0 0 120 120">
@@ -131,9 +133,9 @@
     {:else}
       {#if show('time')}
         {#if going}
-          <div class="left"><b>{fmtDur(elapsed)}</b><span>{paused ? `no power for ${fmtDur(cook.gap)}` : 'cooking'} · since {when(cook.start)}</span></div>
+          <div class="left"><b>{fmtDur(elapsed)}</b>{#if !short || paused}<span>{paused ? `no power for ${fmtDur(cook.gap)}` : 'cooking'}{short ? '' : ` · since ${when(cook.start)}`}</span>{/if}</div>
         {:else if done}
-          <div class="left" class:dim={!justDone}><b>{fmtDur(elapsed)}</b><span>{justDone ? 'cooked' : 'last cook'} · finished {when(cook.end)}</span></div>
+          <div class="left" class:dim={!justDone}><b>{fmtDur(elapsed)}</b><span>{justDone ? 'cooked' : 'last cook'}{short ? '' : ` · finished ${when(cook.end)}`}</span></div>
         {:else}
           <div class="hint">{conn.connected ? `No cook in the last ${HOURS} hours` : 'Connecting…'}</div>
         {/if}
@@ -180,5 +182,8 @@
   .left.dim b { color: var(--muted); }
   .hint { color: var(--muted); font-size: .85em; }
   .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-left: -8px; } /* chip text lines up with the text above */
+  .short { gap: 12px; }
+  .short .info { gap: 3px; }
+  .short .chips { max-height: calc(.9em + 8px); overflow: hidden; }
   .chips span { display: inline-flex; align-items: center; gap: 4px; font-size: .75em; padding: 3px 8px; border-radius: 9px; background: rgba(255,255,255,.06); }
 </style>
