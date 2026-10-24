@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.34.1
+
+- **Propane tank card** (FORCEGC fork). A picture of the tank filled to its level, green / yellow / red at your thresholds (green from 50%, red below 25% by default), shaped for its size (20 / 30 / 40 / 100 lb cylinders, horizontal tanks, RV ASME tanks), with what's left in lb or gallons, battery, temperature and reading quality. Finds Mopeka sensors (Mopeka Enhanced) automatically and can follow the integration's tank preset.
+
 ## 0.34.0
 
 - **Older tablets.** Panalume now runs on older iPads and Macs (Safari 14 and 15, e.g. iPads that stop at iPadOS 15), which showed a blank screen before. Newer devices are unchanged.
