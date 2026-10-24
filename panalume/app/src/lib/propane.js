@@ -9,13 +9,13 @@
 /** Sizes offered in the card's settings ('auto' follows the tank preset sensor). */
 export const SIZES = [
   { value: 'auto', label: 'From the tank preset sensor' },
-  { value: '20lb_v', label: '20 lb (BBQ cylinder)' },
-  { value: '30lb_v', label: '30 lb (RV cylinder)' },
-  { value: '40lb_v', label: '40 lb cylinder' },
-  { value: '100lb_v', label: '100 lb cylinder' },
+  { value: '20lb_v', label: '20 lb (vertical)' },
+  { value: '30lb_v', label: '30 lb (vertical)' },
+  { value: '40lb_v', label: '40 lb (vertical)' },
+  { value: '100lb_v', label: '100 lb (vertical)' },
   { value: '120gal_v', label: '120 gal (vertical)' },
-  { value: 'asme_h', label: 'RV / motorhome ASME tank' },
   { value: '120gal_h', label: '120 gal (horizontal)' },
+  { value: '150gal_h', label: '150 gal (horizontal)' },
   { value: '250gal_h', label: '250 gal (horizontal)' },
   { value: '500gal_h', label: '500 gal (horizontal)' },
   { value: '1000gal_h', label: '1000 gal (horizontal)' },
