@@ -63,6 +63,8 @@
   const tank = $derived(pickTank(props.size, ent(props.preset)?.state));
   const lvl = $derived(band(pct, props.green, props.red));
   const color = $derived(lvl ? COLORS[lvl] : '#4a5263');
+  // The tank's own name ("Patio grill Tank fill" → "Patio grill") unless one is set.
+  const title = $derived(t(props.name) || String(fe?.attributes.friendly_name || '').replace(/\s*tank fill$/i, '').trim() || 'Propane');
 
   // Amounts: the cylinder's lb / kg (or the tank's gallons), plus the volume sensor's reading if there is one.
   const num = (id) => { const v = Number(ent(id)?.state); return Number.isFinite(v) ? v : null; };
@@ -76,8 +78,10 @@
   const amountLine = $derived.by(() => {
     if (!known) return '';
     const parts = [];
-    if (left && tank.amount) parts.push(`${fmtAmount(left.value, left.unit)} of ${fmtAmount(tank.amount.value, tank.amount.unit)}`);
-    if (volume && !(left && left.unit === volume.unit)) parts.push(fmtAmount(volume.value, volume.unit));
+    // The volume sensor's reading wins over the worked-out amount when they're in the same unit.
+    const same = volume && left && left.unit === volume.unit;
+    if (left && tank.amount) parts.push(`${fmtAmount(same ? volume.value : left.value, left.unit)} of ${fmtAmount(tank.amount.value, tank.amount.unit)}`);
+    if (volume && !same) parts.push(fmtAmount(volume.value, volume.unit));
     if (!parts.length && tank.gal) parts.push(fmtAmount((pct / 100) * tank.gal, 'gal'));
     return parts.join(' · ');
   });
@@ -120,7 +124,7 @@
 <div class="pt" class:short class:narrow style="--lc:{color}">
   {#if show('picture')}
     <div class="pic" style="width:{box.w}px;height:{box.h}px">
-      <svg viewBox="0 0 {geo.vw} {geo.vh}" role="img" aria-label="{t(props.name) || 'Propane'} {known ? Math.round(pct) + '%' : weak ? 'no clear reading' : 'unknown'}">
+      <svg viewBox="0 0 {geo.vw} {geo.vh}" role="img" aria-label="{title} {known ? Math.round(pct) + '%' : weak ? 'no clear reading' : 'unknown'}">
         <defs>
           <clipPath id="in{uid}"><rect x={inner.x} y={inner.y} width={inner.w} height={inner.h} rx={inner.rx} ry={inner.ry} /></clipPath>
           <linearGradient id="sh{uid}" x1="0" y1="0" x2={lying ? 0 : 1} y2={lying ? 1 : 0}>
@@ -160,7 +164,7 @@
 
   <div class="info">
     <div class="top">
-      <span class="name"><Icon icon={meta.icon} size="1.1em" />{t(props.name) || 'Propane'}</span>
+      <span class="name"><Icon icon={meta.icon} size="1.1em" /><span class="nm">{title}</span></span>
       {#if !narrow || !known}<span class="chip" class:high={known && !weak && lvl === 'high'} class:mid={known && !weak && lvl === 'mid'} class:low={known && !weak && lvl === 'low'} class:warn={weak} class:off={!known && !weak}>{status}</span>{/if}
     </div>
 
@@ -199,7 +203,9 @@
   .tk.mid { stroke: rgba(255,255,255,.32); }
   .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
   .top { display: flex; align-items: center; gap: 8px; }
-  .name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  /* Longer tank names wrap onto a second line rather than being cut short. */
+  .nm { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; overflow-wrap: anywhere; }
   .name :global(svg) { color: var(--lc); flex: none; }
   .chip { flex: none; font-size: .75em; font-weight: 600; padding: 3px 9px; border-radius: 10px; background: rgba(255,255,255,.07); color: var(--muted); }
   .chip.high { background: rgba(91,216,143,.16); color: #5bd88f; }

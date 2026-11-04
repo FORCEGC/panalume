@@ -5,8 +5,11 @@
   import { cards, categories } from '../lib/registry.js';
   import {
     app, layout, DEVICES, DEFAULT_THEME, changed, addCard, selectedCard, selectedPlacement, removeSelected,
-    duplicateSelected, copyToView, copyLayout, importConfig, selectionSet, groupSelected, ungroupSelected, ensureEditable, setMode, MODES, DISPLAYS, zoneList, addView, removeView, setView, isPlacedAnywhere, placeExisting, zoneWidth, setMainWidth,
+    duplicateSelected, copyToView, copyLayout, importConfig, selectionSet, groupSelected, ungroupSelected, ensureEditable, setMode, MODES, DISPLAYS, zoneList, addView, removeView, setView, isPlacedAnywhere, placeExisting, zoneWidth, setMainWidth, screenHome, setScreenHome, screenDevice, setScreenDevice, groupCloses, setGroupCloses, setSidebarSide, addFilledView, changeType, otherLayouts, copyToLayout,
   } from '../lib/config.svelte.js';
+  import { areas, areaCards } from '../lib/area.js';
+  // Settings kept on this screen only (not in the shared layout).
+  const screenOpts = $state({ home: screenHome(), device: screenDevice() });
 
   import { fromFusion } from '../lib/fusion.js';
   import { toast } from '../lib/ha.svelte.js';
@@ -33,6 +36,26 @@
   const card = $derived(selectedCard());
   const place = $derived(selectedPlacement());
   const def = $derived(card && cards[card.type]);
+  // Other card types that can show this card's entity (e.g. a button → a slider).
+  const swaps = $derived.by(() => {
+    const id = card?.props?.entity;
+    if (!id || typeof id !== 'string' || !id.includes('.')) return [];
+    const d = id.split('.')[0];
+    return Object.values(cards).map((c) => c.meta)
+      .filter((m) => m.type !== card.type && m.fields?.some((f) => f.key === 'entity' && f.type === 'entity' && (!f.domain || [].concat(f.domain).includes(d))))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+  // Home Assistant's areas, for "Add a view for an area".
+  let areaList = $state(null);
+  $effect(() => { if (app.panel === 'views' && !areaList) areas().then((l) => (areaList = l)).catch(() => (areaList = [])); });
+  async function addAreaView(id) {
+    const a = areaList?.find((x) => x.area_id === id);
+    if (!a) return;
+    const items = await areaCards(id).catch(() => []);
+    if (!items.length) return toast(`Nothing in ${a.name} to add`);
+    addFilledView(a.name, a.icon, items);
+    toast(`Added ${a.name} with ${items.length} card${items.length > 1 ? 's' : ''}`);
+  }
   let addTo = $state('main');
   let section = $state('content');
 
@@ -240,7 +263,8 @@
         <p class="hint">Drag any selected card to move them all. Shift/Ctrl-click to add or remove cards; drag a box on empty space to select.</p>
         <div class="row danger">
           <select class="sm" value="" onchange={(e) => { const v = e.currentTarget.value; e.currentTarget.value = ''; if (v) copyToView(v); }} title="Copy to another view"><option value="">Copy to view…</option>{#each app.config.views as v (v.id)}<option value={v.id}>{v.name}{v.id === app.view ? ' (this view)' : ''}</option>{/each}</select>
-          <button class="sm" onclick={() => removeSelected(false)}><Icon icon="mdi:eye-off-outline" size="1em" /> Unplace</button>
+          {#if otherLayouts().length}<select class="sm" value="" onchange={(e) => { const v = e.currentTarget.value; e.currentTarget.value = ''; if (v) copyToLayout(v); }} title="Put it on another device's layout too"><option value="">Copy to layout…</option>{#each otherLayouts() as d (d)}<option value={d}>{DEVICES[d].label}</option>{/each}</select>{/if}
+          <button class="sm" onclick={() => removeSelected(false)} title="Takes them off this device's layout only. They stay on other layouts and in pop-ups."><Icon icon="mdi:eye-off-outline" size="1em" /> Remove from this layout</button>
           <button class="sm red" onclick={() => confirm(`Delete ${multiCount} cards from every layout?`) && removeSelected(true)}><Icon icon="mdi:delete-outline" size="1em" /> Delete</button>
         </div>
       {:else if !card}
@@ -254,6 +278,9 @@
             {#if app.single}<button class="sm" onclick={() => (app.single = false)}>Whole group</button>{/if}
             <button class="sm" onclick={ungroupSelected}>Ungroup</button>
           </div>
+          <div class="fields">
+            <Field obj={{ close: groupCloses() }} f={{ key: 'close', label: 'Close gaps when a card in this group is hidden', type: 'bool', hint: 'Outside edit mode, the group\'s cards below a hidden one (Visible when) move up. Cards outside the group stay where they are.' }} onset={(v) => setGroupCloses(v)} />
+          </div>
         {/if}
         <div class="seg row">
           {#each [['content', 'Content'], ['style', 'Style'], ['actions', 'Actions'], ['position', 'Size']] as [k, l]}
@@ -261,6 +288,14 @@
           {/each}
         </div>
         {#if section === 'content'}
+          {#if swaps.length}
+            <label class="devsw"><span>Card type</span>
+              <select value="" onchange={(ev) => { const m = cards[ev.currentTarget.value]?.meta; ev.currentTarget.value = ''; if (!m) return; changeType(card, m.type, m); toast(`Changed to ${m.name}`); }}>
+                <option value="">{def?.meta.name} — change to…</option>
+                {#each swaps as m (m.type)}<option value={m.type}>{m.name}</option>{/each}
+              </select>
+            </label>
+          {/if}
           {#if sections.length}
             <div class="secs">
               <span class="lbl">Show</span>
@@ -313,7 +348,8 @@
         <div class="row danger">
           <button class="sm" onclick={duplicateSelected}><Icon icon="mdi:content-copy" size="1em" /> Duplicate</button>
           <select class="sm" value="" onchange={(e) => { const v = e.currentTarget.value; e.currentTarget.value = ''; if (v) copyToView(v); }} title="Copy to another view"><option value="">Copy to view…</option>{#each app.config.views as v (v.id)}<option value={v.id}>{v.name}{v.id === app.view ? ' (this view)' : ''}</option>{/each}</select>
-          <button class="sm" onclick={() => removeSelected(false)} title="Remove from this layout (keeps the card for pop-ups / other devices)"><Icon icon="mdi:eye-off-outline" size="1em" /> Unplace{multiCount > 1 ? ' group' : ''}</button>
+          {#if otherLayouts().length}<select class="sm" value="" onchange={(e) => { const v = e.currentTarget.value; e.currentTarget.value = ''; if (v) copyToLayout(v); }} title="Put it on another device's layout too"><option value="">Copy to layout…</option>{#each otherLayouts() as d (d)}<option value={d}>{DEVICES[d].label}</option>{/each}</select>{/if}
+          <button class="sm" onclick={() => removeSelected(false)} title="Takes it off this device's layout only. It stays on other layouts and in pop-ups."><Icon icon="mdi:eye-off-outline" size="1em" /> Remove from this layout</button>
           <button class="sm red" onclick={() => (multiCount < 2 || confirm(`Delete all ${multiCount} cards in this group?`)) && removeSelected(true)}><Icon icon="mdi:delete-outline" size="1em" /> Delete{multiCount > 1 ? ` group (${multiCount})` : ''}</button>
         </div>
       {/if}
@@ -322,6 +358,9 @@
       <p class="hint">This screen: {innerWidth}×{innerHeight}, showing <b>{DEVICES[app.device].label}</b>{param('device') ? ' (set by ?device= in the address)' : ''}.</p>
       <div class="row seg">
         {#each Object.entries(DEVICES) as [k, d]}<button class:on={app.device === k} onclick={() => { app.device = k; app.selected = null; app.multi = []; }}>{d.label}</button>{/each}
+      </div>
+      <div class="fields">
+        <Field obj={screenOpts} f={{ key: 'device', label: 'Layout on this screen', type: 'select', options: [{ value: '', label: 'Automatic' }, ...Object.entries(DEVICES).map(([value, d]) => ({ value, label: d.label }))], hint: 'Saved on this screen, e.g. a big tablet that shows the desktop layout. ?device= in the address does the same and wins.' }} onset={(v) => { screenOpts.device = v; setScreenDevice(v); }} />
       </div>
       {#if app.device === 'tablet'}
         <p class="hint">The <b>tablet layout</b> is the main one: phones and desktops show it too unless you give them their own. Pin a screen to a device with <code>?device=phone</code> / <code>desktop</code> in the URL.</p>
@@ -334,17 +373,25 @@
       <div class="fields">
         <Field obj={app.config.layouts[app.device]} f={{ key: 'kiosk', label: `Hide Home Assistant's header bar on ${app.device === 'tablet' ? 'tablets' : DEVICES[app.device].label.toLowerCase() + 's'}`, type: 'bool' }} />
         <Field obj={app.config.layouts[app.device]} f={{ key: 'display', label: `Sizing on ${app.device === 'tablet' ? 'tablets' : DEVICES[app.device].label.toLowerCase() + 's'}`, type: 'select', options: Object.entries(DISPLAYS).map(([value, label]) => ({ value, label })) }} />
+        <Field obj={app.config.layouts[app.device]} f={{ key: 'home_view', label: `Home view on ${app.device === 'tablet' ? 'tablets' : DEVICES[app.device].label.toLowerCase() + 's'}`, type: 'select', options: [{ value: '', label: 'The first view' }, ...app.config.views.map((v) => ({ value: v.id, label: v.name }))], hint: 'The view this device opens on and goes back to. ?view= in the address does the same and wins.' }} />
+        <Field obj={screenOpts} f={{ key: 'home', label: 'Home view on this screen only', type: 'select', options: [{ value: '', label: 'Same as above' }, ...app.config.views.map((v) => ({ value: v.id, label: v.name }))], hint: 'Saved on this screen, e.g. the kitchen tablet going to Kitchen and the living-room one to Living room, even in kiosk apps that can\'t change the address.' }} onset={(v) => { screenOpts.home = v; setScreenHome(v); }} />
+        <Field obj={app.config.layouts[app.device]} f={{ key: 'return_mins', label: 'Go back to the home view after (minutes without a touch, blank = never)', type: 'number', hint: 'For wall tablets left on another page. ?return=5 in the address does the same and wins.' }} />
       </div>
       {#if app.device === 'tablet' || app.config.layouts[app.device].mode === 'custom'}
         <div class="fields">
           <Field obj={layout()} f={{ key: 'width', label: 'Design width (px) — scaled to fit the screen', type: 'number' }} onset={(v) => setMainWidth((l) => (l.width = v))} />
+          <Field obj={app.config} f={{ key: 'new_cards', label: 'New cards go on', type: 'select', options: [{ value: '', label: 'Every layout (tablet, phone and desktop)' }, { value: 'this', label: 'Only the layout you\'re editing' }], hint: 'With "only this layout", use Copy to layout… on a card to put it on another device too.' }} />
         </div>
         <h4>Sidebar</h4>
         <div class="fields">
           <Field obj={layout().sidebar} f={{ key: 'enabled', label: 'Show sidebar', type: 'bool' }} onset={(v) => setMainWidth((l) => (l.sidebar.enabled = v))} />
           {#if !layout().sidebar.enabled}<p class="hint">Hidden: its cards are kept and come back when you show it again. Without it, views with no Navigation card get a small views menu in the top corner.</p>{/if}
-          <Field obj={layout().sidebar} f={{ key: 'side', label: 'Side', type: 'select', options: ['left', 'right'] }} />
-          <Field obj={layout().sidebar} f={{ key: 'width', label: 'Width', type: 'number' }} onset={(v) => setMainWidth((l) => (l.sidebar.width = v))} />
+          <Field obj={layout().sidebar} f={{ key: 'side', label: 'Side', type: 'select', options: [{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }, { value: 'top', label: 'Top (a bar across every view)' }] }} onset={(v) => setSidebarSide(v)} />
+          {#if layout().sidebar.side === 'top'}
+            <Field obj={layout().sidebar} f={{ key: 'height', label: 'Height', type: 'number', placeholder: '100', hint: 'Put a Navigation card set to Horizontal in it for a menu across the top. It stays in view while the page scrolls.' }} />
+          {:else}
+            <Field obj={layout().sidebar} f={{ key: 'width', label: 'Width', type: 'number' }} onset={(v) => setMainWidth((l) => (l.sidebar.width = v))} />
+          {/if}
           {#if app.config.layouts[app.device].display === 'screen'}
             <Field obj={layout().sidebar} f={{ key: 'scaling', label: 'When a view shrinks to fit the screen', type: 'select', options: [{ value: 'fixed', label: 'Sidebar keeps its size' }, { value: 'shared', label: 'Sidebar shrinks with it' }] }} />
           {/if}
@@ -372,11 +419,21 @@
           <div class="fields">
             <Field obj={v} f={{ key: 'name', label: 'Name', type: 'text' }} />
             <Field obj={v} f={{ key: 'icon', label: 'Icon', type: 'icon' }} />
+            <Field obj={v} f={{ key: 'image', label: 'Image (URL or path — shown instead of the icon)', type: 'text' }} />
             <Field obj={v} f={{ key: 'background', label: 'Background (overrides theme)', type: 'text' }} />
           </div>
         </div>
       {/each}
       <button class="sm" onclick={() => addView('New view')}><Icon icon="mdi:plus" size="1em" /> Add view</button>
+      {#if areaList?.length}
+        <label class="devsw"><span>Add a view for an area</span>
+          <select value="" onchange={(ev) => { const id = ev.currentTarget.value; ev.currentTarget.value = ''; addAreaView(id); }}>
+            <option value="">Pick an area…</option>
+            {#each areaList as a (a.area_id)}<option value={a.area_id}>{a.name}</option>{/each}
+          </select>
+        </label>
+        <p class="hint">Fills a new view with a card for each thing in the area (lights, switches, thermostats, media players, cameras…) and a list of its sensors. They're normal cards after that.</p>
+      {/if}
     {:else if app.panel === 'theme'}
       <div class="fields">{#each THEME as f (f.key)}<Field obj={app.config.theme} {f} />{/each}</div>
       <button class="sm" onclick={() => { app.config.theme = { ...DEFAULT_THEME }; changed(); }}>Reset theme</button>

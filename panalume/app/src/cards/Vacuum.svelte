@@ -15,6 +15,7 @@
     const p = v.slice(7);
     const first = (...n) => n.map((x) => `sensor.${p}_${x}`).find((id) => states.has(id)) || '';
     const sel = ['selected_map', 'map', 'current_map'].map((x) => `select.${p}_${x}`).find((id) => states.has(id)) || '';
+    const mode = [`select.${p}_cleaning_mode`].find((id) => states.has(id)) || '';
     // Dreame / Xiaomi: camera.<vacuum>_map; Roborock: image.<vacuum>_<map name>.
     const pic = [`camera.${p}_map`, `image.${p}_map`].find((id) => states.has(id)) || [...states.keys()].find((id) => id.startsWith(`image.${p}_`)) || '';
     return {
@@ -25,6 +26,7 @@
       error: first('error', 'vacuum_error'),
       map: sel,
       map_image: pic,
+      clean_mode: mode,
     };
   }
   export const meta = {
@@ -34,15 +36,17 @@
     autofill,
     sections: [
       { key: 'state', label: 'Status' }, { key: 'battery', label: 'Battery', section: 'battery' }, { key: 'stats', label: 'Area / time cleaned', section: 'stats' },
-      { key: 'controls', label: 'Start / pause / dock', section: 'controls' }, { key: 'fan', label: 'Suction power', section: 'fan' }, { key: 'map', label: 'Map', section: 'map' }, { key: 'rooms', label: 'Rooms' }, { key: 'locate', label: 'Locate (beep)', section: 'locate' },
+      { key: 'controls', label: 'Start / pause / dock', section: 'controls' }, { key: 'fan', label: 'Suction power', section: 'fan' }, { key: 'cleanmode', label: 'Cleaning mode', section: 'cleanmode' }, { key: 'map', label: 'Map', section: 'map' }, { key: 'rooms', label: 'Rooms' }, { key: 'locate', label: 'Locate (beep)', section: 'locate' },
     ],
     fields: [
       { key: 'entity', label: 'Vacuum', type: 'entity', domain: 'vacuum', hint: 'Rooms to clean appear on the card when the vacuum\'s rooms are matched to Home Assistant areas (in the vacuum\'s settings in Home Assistant), or come from the Dreame integration.' },
       { key: 'name', label: 'Name', type: 'text' },
+      { key: 'big_rooms', label: 'Large room buttons (easier to tap)', type: 'bool' },
       { key: 'battery', label: 'Battery (optional, uses the vacuum\'s own if it has one)', type: 'entity', domain: 'sensor', section: 'battery' },
       { key: 'area', label: 'Area cleaned (optional)', type: 'entity', domain: 'sensor', section: 'stats' },
       { key: 'time', label: 'Cleaning time (optional)', type: 'entity', domain: 'sensor', section: 'stats' },
       { key: 'error', label: 'Error message (optional)', type: 'entity', domain: 'sensor' },
+      { key: 'clean_mode', label: 'Cleaning mode picker (optional, e.g. a Dreame\'s vacuum / mop / both)', type: 'entity', domain: 'select', section: 'cleanmode' },
       { key: 'map', label: 'Map picker (optional, e.g. a Roborock\'s selected map)', type: 'entity', domain: 'select', section: 'map' },
       { key: 'map_image', label: 'Map image (optional, e.g. the vacuum\'s map camera)', type: 'entity', domain: ['camera', 'image'], section: 'map' },
     ],
@@ -142,18 +146,30 @@
   const mapEnt = $derived(show('map') && props.map ? ent(props.map) : null);
   const maps = $derived(mapEnt && !['unavailable', 'unknown'].includes(mapEnt.state) && !dead ? mapEnt.attributes.options || [] : []);
   const cap = (s) => String(s).replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  // A cleaning-mode picker (e.g. Dreame's select.<vacuum>_cleaning_mode: vacuum, mop or both).
+  const modeEnt = $derived(show('cleanmode') && props.clean_mode ? ent(props.clean_mode) : null);
+  const modes = $derived(modeEnt && !['unavailable', 'unknown'].includes(modeEnt.state) && !dead ? modeEnt.attributes.options || [] : []);
 
   // The map picture (a map camera, or an image entity), refreshed more often while it cleans.
-  const mapPic = $derived(show('map') && props.map_image ? ent(props.map_image) : null);
+  // Its address changes whenever the integration updates the map (e.g. Dreame, as
+  // the robot moves); the timer only depends on the entity and whether it's moving,
+  // so frequent map updates don't keep restarting it.
+  const mapId = $derived(show('map') && props.map_image ? props.map_image : '');
+  const mapPic = $derived(mapId ? ent(mapId) : null);
+  const moving = $derived(cleaning || st === 'returning');
   let tick = $state(0);
   $effect(() => {
-    if (!mapPic) return;
-    const iv = setInterval(() => tick++, cleaning || st === 'returning' ? 5000 : 60000);
+    if (!mapId) return;
+    const iv = setInterval(() => tick++, moving ? 5000 : 60000);
     return () => clearInterval(iv);
   });
-  const mapUrl = $derived(!mapPic || ['unavailable', 'unknown'].includes(mapPic.state) ? ''
-    : mapPic.entity_id.startsWith('image.') ? haImage(mapPic.attributes.entity_picture)
-    : `ha/api/camera_proxy/${mapPic.entity_id}?t=${tick}`);
+  const mapUrl = $derived.by(() => {
+    if (!mapPic || ['unavailable', 'unknown'].includes(mapPic.state)) return '';
+    const pic = haImage(mapPic.attributes.entity_picture);
+    if (mapPic.entity_id.startsWith('image.')) return pic;
+    const url = pic || `ha/api/camera_proxy/${mapPic.entity_id}`;
+    return `${url}${url.includes('?') ? '&' : '?'}t=${tick}`;
+  });
 
   const area = $derived(show('stats') && props.area ? ent(props.area) : null);
   const time = $derived(show('stats') && props.time ? ent(props.time) : null);
@@ -169,9 +185,12 @@
   const showMap = $derived(!!mapUrl && show('controls') && !dead && h >= 280 && w >= 240);
   const roomsRow = $derived(rooms.length ? 38 : 0);
   // The suction picker wraps onto its own row on narrower cards: leave room for it.
-  const pickers = $derived((fans.length ? 1 : 0) + (maps.length ? 1 : 0));
-  const extraRow = $derived(!pickers || w >= 380 ? 0 : pickers === 2 && w < 300 ? 80 : 40);
-  const ringSize = $derived(Math.max(56, Math.min(w - 48, h - 28 - 34 - (stats.length || problem ? 22 : 0) - 52 - 20 - extraRow - roomsRow, 170)));
+  const pickers = $derived((fans.length ? 1 : 0) + (maps.length ? 1 : 0) + (modes.length ? 1 : 0));
+  const extraRow = $derived(!pickers || (w >= 380 && pickers < 3) ? 0 : pickers >= 2 && w < 300 ? 80 : 40);
+  const ringRoom = $derived(Math.min(w - 48, h - 28 - 34 - (stats.length || problem ? 22 : 0) - 52 - 20 - extraRow - roomsRow, 170));
+  const ringSize = $derived(Math.max(56, ringRoom));
+  // A full card (rooms and several pickers) leaves no room for the round button: the Start button below does the same.
+  const noOrb = $derived(ringRoom < 40 && show('controls'));
   const R = 44, C = 2 * Math.PI * R;
   const battColor = $derived(batt <= 15 ? '#ff6b6b' : batt <= 30 ? '#ffb547' : color);
   const battIcon = $derived(batt <= 15 ? 'mdi:battery-alert-variant-outline' : batt <= 40 ? 'mdi:battery-low' : batt <= 75 ? 'mdi:battery-medium' : 'mdi:battery-high');
@@ -196,9 +215,9 @@
       <span class="name">{t(props.name) || name(e)}</span>
       {#if hasBatt}<span class="chip" class:low={batt <= 15}><Icon icon={battIcon} size="1em" />{formatNumber(batt, 0)}%</span>{/if}
     </div>
-    <div class="mid" class:withmap={showMap}>
+    <div class="mid" class:withmap={showMap} class:none={noOrb && !showMap}>
       {#if showMap}<img class="map" src={mapUrl} alt="Map" />
-      {:else}<button class="orb" class:dead style="width:{ringSize}px;height:{ringSize}px" onclick={main} data-stop disabled={dead} aria-label={mainLabel}>{@render orb(ringSize)}</button>{/if}
+      {:else if !noOrb}<button class="orb" class:dead style="width:{ringSize}px;height:{ringSize}px" onclick={main} data-stop disabled={dead} aria-label={mainLabel}>{@render orb(ringSize)}</button>{/if}
     </div>
     <div class="foot">
       <div class="big">{show('state') ? label : ''}</div>
@@ -206,14 +225,14 @@
       {:else if stats.length}<div class="sub">{stats.map((x) => stateText(x)).join(' · ')}</div>{/if}
     </div>
     {#if rooms.length}
-      <div class="rooms" class:more={roomsMore} bind:this={roomsEl} onscroll={roomsFade} data-stop role="group" aria-label="Rooms">
+      <div class="rooms" class:large={props.big_rooms} class:more={roomsMore && !props.big_rooms} bind:this={roomsEl} onscroll={roomsFade} data-stop role="group" aria-label="Rooms">
         {#each rooms as r (r.id)}
           {@const n = chosen.indexOf(r.id)}
           <button class:on={n >= 0} onclick={() => pick(r.id)} aria-pressed={n >= 0} disabled={cleaning || st === 'returning'}>{#if n >= 0 && chosen.length > 1}<b>{n + 1}</b>{/if}{r.name}</button>
         {/each}
       </div>
     {/if}
-    {#if !dead && (show('controls') || canLocate || fans.length || maps.length)}
+    {#if !dead && (show('controls') || canLocate || fans.length || maps.length || modes.length)}
       <div class="btns" data-stop>
         {#if show('controls')}
           <button class="main" class:go={!cleaning} onclick={main}><Icon icon={mainIcon} size="1.1em" /> <span class="ml">{mainLabel}</span></button>
@@ -223,6 +242,11 @@
         {#if fans.length}
           <select value={e.attributes.fan_speed} onchange={(ev) => call('set_fan_speed', { fan_speed: ev.currentTarget.value })} title="Suction power">
             {#each fans as f}<option value={f}>{cap(f)}</option>{/each}
+          </select>
+        {/if}
+        {#if modes.length}
+          <select class="mode" value={modeEnt.state} onchange={(ev) => callService('select', 'select_option', { option: ev.currentTarget.value }, { entity_id: modeEnt.entity_id })} title="Cleaning mode">
+            {#each modes as m}<option value={m}>{cap(m)}</option>{/each}
           </select>
         {/if}
         {#if maps.length}
@@ -265,6 +289,9 @@
   .rooms::-webkit-scrollbar { display: none; }
   .rooms.more { -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent); mask-image: linear-gradient(90deg, #000 80%, transparent); }
   .rooms button:disabled { opacity: .45; }
+  /* Large: finger-sized buttons, wrapped onto more rows rather than scrolled. */
+  .rooms.large { flex-wrap: wrap; gap: 8px; overflow: visible; }
+  .rooms.large button { min-height: 44px; padding: 10px 18px; font-size: .95em; }
   .rooms button { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 99px; border: 0; background: rgba(255,255,255,.06); color: var(--muted); font: inherit; font-size: .8em; white-space: nowrap; }
   .rooms button.on { background: color-mix(in srgb, var(--c) 26%, transparent); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, transparent); }
   .rooms b { display: inline-grid; place-items: center; min-width: 1.4em; height: 1.4em; border-radius: 50%; background: var(--c); color: #0b0f17; font-size: .85em; }
@@ -286,6 +313,8 @@
   .btns .main { background: color-mix(in srgb, var(--c) 24%, rgba(255,255,255,.04)); font-weight: 600; }
   .btns .main.go { background: color-mix(in srgb, #5bd88f 26%, rgba(255,255,255,.04)); }
   .btns select { font-size: .8em; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.06); max-width: 120px; }
+  .btns select.mode { max-width: 175px; }
+  .mid.none { display: none; }
   .small { flex-direction: row; align-items: center; gap: 10px; }
   .txt { flex: 1; min-width: 0; }
   .st { font-size: .85em; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

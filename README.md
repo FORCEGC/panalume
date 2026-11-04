@@ -7,6 +7,8 @@ Put any card anywhere, make it any size, style it any way — and run it on a wa
 
 <p align="center">👋 <b>Welcome!</b> Panalume is a free, open-source dashboard for the Home Assistant community. <i>Driven by a human, helped by Claude Code</i>, it started as a dashboard for one home and is growing with help from people like you: some of its cards were built by the community. Whether it's an idea, a bug, a question or a new card, you're very welcome to <a href="https://github.com/leacho73/panalume/issues">open an issue</a> or send a pull request.</p>
 
+<p align="center">🗓️ <b>Updates are now weekly.</b> Panalume has grown much faster than we expected (thank you!), so to save everyone a stream of update prompts, new versions come out <b>every Friday morning</b> (UK time). Urgent fixes still go out straight away, and we're looking into a dev channel for anyone who wants changes sooner.</p>
+
 <p align="center"><img src="docs/screenshots/home.webp" alt="Panalume on a wall tablet" width="900"></p>
 
 <p align="center"><a href="https://youtu.be/hPoqwze7i7k"><img src="docs/screenshots/preview.webp" alt="Panalume in action" width="900"></a><br><sub>▶ <a href="https://youtu.be/hPoqwze7i7k">Watch the 1½-minute demo on YouTube</a>: the wall tablet, energy, solar, sun and moon, around the house, editing in the browser and the phone layout.</sub></p>
@@ -18,8 +20,9 @@ Put any card anywhere, make it any size, style it any way — and run it on a wa
 Panalume is a Home Assistant **app** that gives you a dashboard you design in the browser — no YAML, no grid. It was inspired by [ha-fusion](https://github.com/matt8707/ha-fusion), and goes further on layout freedom, styling and energy data.
 
 - **Free layout** — drag cards anywhere and drag any edge or corner to resize. Cards snap to each other's edges and sizes (with guide lines) and to a grid, and a **magnet** keeps cards joined at your usual gap: make one taller and the cards below move down, drop one into a column and it slots in. Hold Shift for pixel precision.
-- **Sidebar** — an optional sidebar that stays put (and keeps its size) while you switch views; cards move freely between sidebar and main area. Turn it off and its cards are kept for later.
+- **Sidebar** — an optional sidebar on the left, the right or across the top that stays put (and keeps its size) while you switch views; cards move freely between sidebar and main area. Turn it off and its cards are kept for later.
 - **One layout, every screen** — design once for your wall tablet; desktops show it scaled, phones get an automatic single-column version. Give any device its own custom layout if you want.
+- **Quick start for a room** — *Add a view for an area* fills a view from one of Home Assistant's areas; any card can be changed to another type later without starting again.
 - **Made for wall tablets** — *fit the whole view on screen* (no scrolling), a kiosk mode that hides Home Assistant's header bar, and **live updates**: save on your laptop and every tablet updates within a second. After an app update, open screens reload themselves.
 - **Templates everywhere** — any text, icon, colour or style can be a live Home Assistant template (`{{ states('sensor.x') }}`), and any card can be shown or hidden by a template.
 - **Style anything** — background, colours, radius, border, shadow, glass blur, fonts, custom CSS, per card or for the whole theme, plus a **− / +** to scale everything inside a card.
@@ -78,7 +81,7 @@ Detects Samsung SmartThings washers, Home Connect (Bosch / Neff / Siemens) dishw
 
 <table><tr>
 <td width="55%"><img src="docs/screenshots/airfryer.webp" alt="Air fryer card"><br><sub><b>Air fryer</b>: works on any smart plug with a power sensor. Cooking, paused or finished, and a timer for the whole cook; taking the basket out to shake the food doesn't stop the clock (you choose how long a power cut may last, 3 minutes by default).</sub></td>
-<td width="45%"><img src="docs/screenshots/vacuum.webp" alt="Robot vacuum card"><br><sub><b>Robot vacuum</b>: status, battery, area and time cleaned, Start / Pause / Dock, Locate, suction power, cleaning chosen rooms, the map and a map picker (Roborock, Ecovacs, Dreame, Valetudo and others detected automatically).</sub></td>
+<td width="45%"><img src="docs/screenshots/vacuum.webp" alt="Robot vacuum card"><br><sub><b>Robot vacuum</b>: status, battery, area and time cleaned, Start / Pause / Dock, Locate, suction power, cleaning mode, cleaning chosen rooms, the map and a map picker (Roborock, Ecovacs, Dreame, Valetudo and others detected automatically).</sub></td>
 </tr></table>
 
 **Lawn mower**: start, pause and dock, battery, the mower's activity and next start (Husqvarna, Gardena, Worx and others detected automatically).
@@ -90,7 +93,7 @@ Detects Samsung SmartThings washers, Home Connect (Bosch / Neff / Siemens) dishw
 
 <table><tr>
 <td width="50%"><img src="docs/screenshots/climate-group.webp" alt="Climate group card"><br><sub><b>Climate group</b>: upstairs and downstairs AC (or any thermostats) from one card: one target, mode and fan speed for all of them, and a row per unit to switch it or adjust it on its own.</sub></td>
-<td width="50%"><img src="docs/screenshots/calendar.webp" alt="Calendar card"><br><sub><b>Calendar</b>: today's and upcoming events from any of Home Assistant's calendars (Google, CalDAV, Local calendar, holidays…), each in its own colour, grouped by day; what's on now is highlighted, and tapping an event shows its details.</sub></td>
+<td width="50%"><img src="docs/screenshots/calendar.webp" alt="Calendar card"><br><sub><b>Calendar</b>: today's and upcoming events from any of Home Assistant's calendars (Google, CalDAV, Local calendar, holidays…), each in its own colour, grouped by day; what's on now is highlighted, and tapping an event shows its details. Or a week or month view, with 12-hour times if you prefer.</sub></td>
 </tr></table>
 
 ## Edit in the browser
@@ -109,7 +112,7 @@ Phones get an automatic single-column version of your tablet layout: navigation 
 
 ### All the cards
 
-Button / tile · Light · Hue light with scenes · Thermostat (draggable dial) · Climate group (several thermostats / AC units at once) · Door lock · 3D printer · Hot tub · Washing machine · Tumble dryer · Dishwasher · Air fryer · Robot vacuum · Lawn mower · Media player (artwork, volume, source, speaker grouping) · Cover / blind · Slider · Option picker · Entities list · Glance · Sensor with graph · Gauge · History graph · Weather · Calendar (today's and upcoming events) · Clock · Sun & moon (sunrise / sunset, moon phase, moonrise / moonset) · Text / Markdown · Template lines · People · Photo frame (Immich and local albums) · Camera (tap for full-screen live view; plays the video stream for cameras whose pictures fail, e.g. Tapo) · Web page · Image · Navigation · Divider · Alarm panel · and the energy cards above.
+Button / tile · Light · Hue light with scenes · Thermostat (draggable dial) · Humidifier · Kettle · Climate group (several thermostats / AC units at once) · Fan (and air purifiers, ceiling fans with lights) · Door lock · 3D printer · Hot tub · Washing machine · Tumble dryer · Dishwasher · Air fryer · Robot vacuum · Lawn mower · Media player (artwork, volume, source, speaker grouping) · Upcoming media (Sonarr / Radarr) · Plex activity and recently watched (Tautulli) · Cover / blind · Slider · Option picker · Entities list · Glance · Sensor with graph · Gauge · History graph (smooth, straight or stepped lines) · Weather (feels like, wind, gusts, UV, rain) · Calendar (upcoming events, week, week with hours or month) · Clock · Sun & moon (sunrise / sunset, moon phase, moonrise / moonset) · Text / Markdown · Template lines · To-do list · People · Photo frame (Immich and local albums) · Camera (tap for full-screen live view; plays the video stream for cameras whose pictures fail, e.g. Tapo) · Web page (or one of Home Assistant's own dashboards) · Image · Navigation · Divider · Alarm panel · Updates & notifications · Football (Soccer Live) · Propane tank (Mopeka) · and the energy cards above.
 
 ### Coming from ha-fusion?
 
@@ -127,7 +130,7 @@ Button / tile · Light · Hue light with scenes · Thermostat (draggable dial) �
 2. Install **Panalume**, start it and turn on **Show in sidebar**.
 3. Open **Panalume** from the sidebar and press **E** to start building.
 
-Wall tablet tips: set **Layout → Tablet → Sizing** to *Fit the whole view on screen* and tick *Hide Home Assistant's header bar*. Or add options to the tablet's URL:
+Wall tablet tips: set **Layout → Tablet → Sizing** to *Fit the whole view on screen* and tick *Hide Home Assistant's header bar*. **Home view** (for all tablets, or this screen only) and **Go back to the home view after … minutes** are in the Layout tab too, and **Layout on this screen** picks the tablet layout for a screen that shows the wrong one. Or add options to the tablet's URL:
 
 | Option | Does |
 |---|---|
@@ -136,6 +139,7 @@ Wall tablet tips: set **Layout → Tablet → Sizing** to *Fit the whole view on
 | `?kiosk` | Hide Home Assistant's header bar |
 | `?view=Upstairs` | Open on this view (name or id) |
 | `?return=5` | Go back to that view after 5 minutes without a touch |
+| `…/panalume#Energy` | Opens that view. The address follows the view you're on, so you can bookmark it |
 | `?noedit` | Hide the edit pencil and the E shortcut |
 
 e.g. `…/panalume?view=Upstairs&return=5&noedit&fit=screen&kiosk`
