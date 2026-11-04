@@ -12,6 +12,12 @@ Open **Panalume** in the HA sidebar. Press the faint pencil (top-right) or **E**
 
 Config is stored in the app's `/data/dashboard.json` (Layout → Export for a backup).
 
+## Climate schedule
+
+Up to eight times a day for a thermostat, with weekdays, mode and temperature. Add several thermostats and they sit on tabs. Modes and the temperature range come from each climate entity (including a low and a high for heat/cool).
+
+The card needs a package in Home Assistant: a text helper and an on/off switch per thermostat, one shared script and one automation. List your entity ids and the helper names follow. Setup is in [Climate schedule](../docs/climate-schedule.md).
+
 ## Energy cards
 
 Added from **Add → Energy**; entities are auto-detected for the Octopus Energy and myenergi integrations (editable after).
